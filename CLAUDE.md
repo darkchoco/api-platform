@@ -18,6 +18,12 @@ Spring 코드는 약간의 효율성을 희생하더라도 **가독성을 우선
   더 명시적인 최신 아티팩트를 사용. ⚠️ 실제 아티팩트명은 PLAT-2에서 의존성 추가 시
   Spring Boot 4.1.x 공식 문서로 재확인할 것(사용자가 예시로 든 것이지 검증된 사실은 아님)
 
+# Conventions
+
+- 커밋 메시지는 Conventional Commits 형식. 즉 `feat: Create...` 식으로. `feat, fix, docs, style, refactor, test, chore` 로 구분
+- 커밋 메시지 마지막에 'Co-Authored-By...'는 추가하지 말 것
+- 커밋 실행 전 항상 커밋 메시지를 먼저 보여주고 사용자 확인을 받을 것
+
 # 빌드
 
 - **Maven** 멀티모듈(Gradle 아님 — 초기에 Gradle로 검토했으나 최종적으로 Maven 확정)
