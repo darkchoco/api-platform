@@ -19,10 +19,9 @@
         <spring-boot.version>4.1.1</spring-boot.version>
     </properties>
 
-    <!--
-        하위 모듈은 apm-api 스캐폴딩(PLAT-2)에서 추가된다.
-        루트 pom은 지금은 BOM/컴파일러 설정을 공유하는 dependencyManagement 용도로만 존재.
-    -->
+    <modules>
+        <module>apm-api</module>
+    </modules>
 
     <dependencyManagement>
         <dependencies>

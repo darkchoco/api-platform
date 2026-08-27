@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: apm-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: when-authorized
