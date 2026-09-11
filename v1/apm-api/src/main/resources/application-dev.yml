@@ -4,3 +4,14 @@ spring:
     username: ${DB_USER:apm}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+logging:
+  level:
+    darkchoco: DEBUG
+
+app:
+  cors:
+    # Vite dev 서버는 기본적으로 /api를 프록시하지만, 브라우저에서 apm-api를
+    # 직접 호출(Swagger UI, Postman 등 제외)해야 할 때를 대비해 열어둔다.
+    allowed-origins:
+      - http://localhost:5173

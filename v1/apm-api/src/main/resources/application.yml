@@ -12,3 +12,13 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+logging:
+  level:
+    darkchoco: INFO
+
+# 기본은 크로스오리진을 아무 것도 허용하지 않는다. 브라우저가 apm-api를 직접
+# 호출해야 하는 프로파일(dev 등)에서만 application-*.yml로 origin을 연다.
+app:
+  cors:
+    allowed-origins: []
