@@ -1,0 +1,22 @@
+services:
+  apm-api:
+    build:
+      context: .
+      dockerfile: apm-api/Dockerfile
+    container_name: apm-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-38080}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prd}
+      # MySQL은 이 저장소가 관리하지 않는 별도 서비스 - 호스트에 이미 떠 있는
+      # localhost:${DB_PORT}를 host.docker.internal로 그대로 바라본다.
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-33306}
+      DB_NAME: ${DB_NAME:-apm}
+      DB_USER: ${DB_USER:-apm}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD를 .env에 설정하세요}
+    extra_hosts:
+      # host.docker.internal은 Docker Desktop(Mac/Windows)에서는 기본 제공되지만
+      # Linux(WSL 포함) 상의 Docker Engine에서는 명시적으로 추가해야 한다.
+      - "host.docker.internal:host-gateway"
