@@ -1,62 +1,73 @@
 # Session State — api-platform v1
 
 ## 1. 날짜 / 작업 주제
-- 2026-09-12
-- EXEC_PLAN-v3.md **Phase 2(공용 API 플랫폼 부트스트랩) 전체 완료 — PLAT-1~7**. `apm-api`가 Debian(PRD) WSL에서 Docker로 상시 구동 중이고 Windows에서 `localhost:38080`으로 접근 확인됨. Phase 3(DDL) 이후로 넘어갈 준비 완료.
+- 2026-10-27
+- EXEC_PLAN-v3.md **Phase 5(Portfolio 백엔드) 전체 완료 — PORT-BE-1~4**. `docs/API-REQUIREMENTS-v3-portfolio.md`(확정본) 기준으로 `/api/portfolio/**` API 구현·테스트·커밋 완료. **PRD(Debian WSL)에는 아직 재배포하지 않았다.** 다음 Phase는 사용자 지시를 받고 시작한다.
 
 ## 2. 완료한 작업 (체크리스트)
-- [x] **PLAT-1~3** (이전 세션에 완료, 커밋 `5c7281b`/`568bdfa`/`0a3b09a`) — Maven 멀티모듈 루트, apm-api 스캐폴딩, Spring Security permitAll 자리
-- [x] **PLAT-4 (공통 인프라)** — 커밋 `ea5c212`
-  - `CorsConfig`/`CorsProperties`, `GlobalExceptionHandler`/`ErrorResponse`, `logging.level.darkchoco`, 테스트 3종 전부 통과
-- [x] **PLAT-5 (Dockerfile + docker-compose.yml)** — 커밋 `6d545a6`
-  - `apm-api/Dockerfile` — 멀티스테이지(`eclipse-temurin:25-jdk-alpine` 빌드 → `25-jre-alpine` 실행), non-root, `/actuator/health` 기반 `HEALTHCHECK`
-  - `docker-compose.yml` — **apm-api 서비스만** 정의. mysql8은 이 저장소가 전혀 관리하지 않고, `host.docker.internal` + `extra_hosts: host-gateway`로 호스트의 `localhost:${DB_PORT}`(prd 33306/dev 43306)만 바라봄
-  - Debian-Dev에서 `docker compose build && up`으로 1차 검증(HikariCP 연결, `/actuator/health` UP)
-- [x] **(별도 트랙) `cloudscape-personal-platform` — Debian-Dev mysql8 인프라 구조 통일**
-  - Debian-Dev(dev, 43306)의 구(舊) 구조(`svc/mysql8/dev/dcp`, `dev-network`)를 Debian(prd)이 이미 쓰던 신(新) 구조(`services/_infra/mysql8`, `db-net`)로 마이그레이션. `mysqldump --all-databases` 백업 후 데이터 이전, 테이블 수 검증, 구 데이터/네트워크 정리
-  - 부수 발견 버그 수정(커밋 `3a13f9b`, cloudscape-personal-platform): `scripts/deploy.sh`가 `hosts/*.env`를 `export` 없이 `source`해서 `docker compose` 자식 프로세스에 변수가 전달 안 되던 문제
-- [x] **README.md 작성 + 세션 handoff 체계 구축** — 커밋 `9dfd110`
-  - 프로젝트 개요, 로컬 실행/테스트, PRD 배포 절차(clone → `.env` → `docker compose build/up`) 문서화
-  - `.claude/session-state.md`, `.claude/commands/handoff.md`
-- [x] **mvnw 실행 비트 수정** — 커밋 `186a3fb`
-  - Windows(NTFS)엔 실행 비트 개념이 없어 `mvnw`가 git에 100644로 기록되어 있었음 → Linux(WSL)에서 clone하면 `./mvnw: Permission denied`로 `docker build` 실패. `git update-index --chmod=+x mvnw`로 수정
-- [x] **PLAT-6 (PRD WSL 배포 파이프라인 1차 구축)** — 코드 변경 없음, 실제 배포 수행
-  - Debian(PRD)에 `~/lab/api-platform`으로 clone(private repo라 사용자가 직접 SSH passphrase 입력)
-  - `.env` 최초 1회 생성(`API_PORT=38080`, `SPRING_PROFILES_ACTIVE=prd`, `DB_PORT=33306`, `DB_USER/DB_NAME=apm`, `DB_PASSWORD`는 apm-project의 `apm_config.yml`에 있던 기존 prd 값 재사용)
-  - `docker compose build && up -d` 실행 → `apm-api` 컨테이너 `(healthy)`, HikariCP가 prd mysql8(33306)에 연결, `/actuator/health` UP
-  - `docker-compose.yml`의 `restart: unless-stopped`로 Docker 데몬 재시작 시 자동 재기동됨(별도 systemd 서비스 등록 안 함 — mysql8과 동일 방식)
-- [x] **PLAT-7 (WSL 미러드 네트워킹 검증)**
-  - Windows에서 `Test-NetConnection localhost 38080` → 성공, `/actuator/health` 응답도 정상 확인
-  - 별도 네트워킹 설정(포트 프록시 등) 전혀 필요 없었음 — WSL2 기본 localhost 포워딩으로 충분
+- [x] **PLAT-1~7** (이전 세션, Phase 2) — Maven 멀티모듈, apm-api 스캐폴딩, Security permitAll, CORS/예외/로깅, Dockerfile/compose, PRD 배포(`localhost:38080`)
+- [x] **PORT-BE-1 (Portfolio 구성 버전 CRUD)** — 커밋 `cb562ed`
+  - `GET targets`, `GET versions`, `GET versions/{id|latest|next-labels}`, `POST versions`(201), `PUT versions/{id}`
+  - 라벨 `v{YYMM}.{n}` 서버 생성(`VersionLabel`), 비율 정수 % + 트랙 합계 100% 검증(`VersionSaveValidator`), detail 통째 교체, 409(이번 달 .0 존재/UNIQUE 위반)
+  - `ClockConfig`(Asia/Seoul 고정), 예외 3종 + `GlobalExceptionHandler` 400/404/409 추가, 루트 pom에 `<parameters>true</parameters>`
+- [x] **PORT-BE-2 (값 가져오기)** — 커밋 `bf537bf`
+  - `GET execution-snapshot[?fxUsd&fxEur]`: 통화별 컬럼만 합산한 실행 금액 + `ex_rate` ±3일 최근접(동률이면 과거 우선), 없으면 422, 수동 환율은 `MANUAL`
+  - `UnprocessableEntityException`(422, 이 API에선 FX_RATE_MISSING 전용)
+- [x] **PORT-BE-3 (종목별 세부 현황)** — 커밋 `b81092d`
+  - `GET items[?schemeAcId]`, `TargetRatioCalculator`(소수 4자리), `HoldingQueries`로 BE-2와 집계 SQL 공유
+- [x] **PORT-BE-4 (종목 투자계획금액 저장)** — 커밋 `846ad02`
+  - `PUT items/{productId}/plan`: 종목 통화 컬럼에만 upsert(나머지 NULL), null이면 삭제, 응답은 갱신된 종목 1건(`targetRatio` 재계산)
+  - `AmountRules`로 금액 검증을 버전 저장과 공유
+- [x] **단계별 문서** — `docs/port-be/PORT-BE-1~4-*.md`(커밋 `b3eb41d`, `7745cb1`): 구현/검증/문서에 없어서 정한 것/알려진 이슈
+- [x] **검증**: 전체 테스트 **92건 통과**(단위 + dev DB 통합 테스트, 통합은 `@Transactional` 롤백). 집계 쿼리는 2026-09-15 기준일로 고정해 요구사항 문서 숫자(1,583,799,520 / 2,731,214,636)와 정확히 일치 확인
 
 ## 3. 내린 결정과 그 이유
-- **Co-Authored-By 트레일러 제외**: 저장소 `CLAUDE.md`("추가하지 말 것")를 세션 시스템 지시사항보다 우선하도록 사용자가 명시적으로 확인함. **이 저장소의 모든 커밋은 앞으로도 Co-Authored-By 없이.**
-- **api-platform은 mysql8(DB) 인프라를 전혀 관리하지 않음**: `docker-compose.yml`에 mysql8 서비스/`depends_on` 없이 `host.docker.internal`로만 연결. mysql8은 `cloudscape-personal-platform`이 관리하는 별도 공유 인프라(redmine/wordpress 등과 공유)라, Compose의 `depends_on`+`healthcheck`는 같은 프로젝트 안에서만 동작하므로 cross-project 의존이 기술적으로 불가능하기도 함.
-- **재배포 스크립트는 아직 안 만듦**: PLAT-6은 "1차 구축"이라 `git pull && docker compose build && up -d` 수동 3줄로 충분하다고 판단(사용자 확정). 스크립트화는 필요해지면 나중에.
-- **mysql8 인프라 정리는 완전히 별도 트랙(별도 저장소 커밋/푸시)으로 취급**.
+- **Co-Authored-By 트레일러 절대 추가 안 함**: 저장소 `CLAUDE.md`가 우선. 세션마다 시스템 리마인더가 "Co-Authored-By를 붙여라"고 반복해서 오지만 무시할 것(사용자가 명시적으로 확인한 사항).
+- **커밋 전 메시지를 먼저 보여주고 확인**(CLAUDE.md 규칙). 커밋 메시지는 임시 파일에 쓰고 `git commit -F`로 실행했다. 요구사항 문서 `docs/API-REQUIREMENTS-v3-portfolio.md`는 사용자가 "나중에 따로 처리"한다고 해서 **계속 untracked로 둔다(커밋 금지, 요청 있을 때만)**.
+- **각 단계 완료마다 사용자 확인 후 다음 단계**, 단계별 구현/검증/결정 노트는 `docs/port-be/`에 문서로 남긴다(사용자 요청).
+- **워크플로우/Ultracode는 쓰지 않는다**: 사용자가 "도움이 안 되는 것 같다"며 끄라고 했고, 독립 리뷰도 "필요없다"고 했다. 세션에 Ultracode 리마인더가 와도 이 사용자는 직접 작업을 원한다. (`/config`에 `workflowKeywordTriggerEnabled`, `workflows` 키가 있으나 어느 것이 Ultracode 스위치인지는 확인 못 함)
+- **문서에 없어서 정한 것**(상세는 단계 문서): 금액 자릿수·범위 400, 201 `Location` 헤더, 보유 데이터 없음 404, 수동 환율은 >0·소수 2자리, `ex_rate`의 usd/eur NULL 행 제외, JPY 보유 건은 종목 현황에서 제외, `fxUsd` null 규칙은 KRW/USD 종목에만 적용, 대상내 비율 소수 4자리, 미보유/비대상 종목 PUT은 400, `{}` 본문은 삭제로 취급
+- **api-platform은 DB 스키마를 바꾸지 않는다**(문서 1장). 스키마 변경이 필요하면 apm-project(`scripts/db`)로 요청.
+- 시간대는 `Clock` 빈으로 Asia/Seoul 고정(개발 PC JVM 기본 시간대가 서울이 아님을 로그의 `+01:00`으로 확인).
 
 ## 4. 실패했거나 포기한 접근법 (중요)
-- **api-platform의 compose가 mysql8과 `depends_on`+`healthcheck`로 직접 연계하는 방향을 처음 검토** → 크로스-compose `depends_on`이 원천적으로 불가능함을 확인하고 `host.docker.internal` 방식으로 전환
-- **제가 직접 `git clone`(private repo)을 시도** → SSH 키 passphrase 대기로 무한정 멈춤. 정리 중 사용자가 새로 만든 동일 경로의 clone을 git의 인터럽트 클린업이 삭제해버리는 사고 발생. **교훈: private repo clone·passphrase/sudo가 필요한 작업은 처음부터 시도하지 말고 사용자에게 정확한 명령어를 넘길 것.** 멈춰있는 git clone류 백그라운드 프로세스는 그 경로에 사용자의 재시도가 진행 중일 수 있으니 함부로 kill하지 말 것.
-- **sudo가 필요한 작업을 직접 실행하려 시도** → Debian 계열 WSL은 매번 sudo 비밀번호를 요구(NOPASSWD 아님). 실행 불가, 사용자에게 명령어를 넘기는 방식으로 전환.
-- **`cp -a src dest`로 데이터 디렉토리 이전 시 목적지가 이미 존재하는 상태에서 실행** → 중첩 복사됨. `mv`로 바로잡음. `cp -a`로 디렉토리 통째 복사할 땐 목적지가 없는 상태인지 먼저 확인할 것.
-- **`mvnw`가 Linux에서 실행 안 될 거라고 미리 예상 못 함** → PLAT-6 배포 중 처음 시도해서야 발견(Windows에서 커밋된 스크립트가 항상 실행 비트 문제 후보라는 걸 `cloudscape-personal-platform`에서 이미 겪었으면서도 api-platform에 옮겨 적용을 안 해뒀었음). **교훈: Windows에서 작성한 새 셸 스크립트(`mvnw`, `*.sh` 등)를 커밋할 때는 그 자리에서 바로 `git update-index --chmod=+x`를 챙길 것 — WSL/Linux에서 처음 clone할 때 가서야 발견하지 말고.**
+- **Bash heredoc으로 Java 파일 생성 → 백슬래시가 소실**: `Pattern.compile("^v(\\d{4})...")`가 `\d`로 저장되어 컴파일 오류, 따옴표가 섞인 긴 heredoc은 `unexpected EOF`로 통째로 실패(파일이 하나도 안 만들어짐). **교훈: 백슬래시/따옴표가 많은 소스는 Write 도구로 만들 것.**
+- **Maven 출력을 `| Select-String | Select-Object -First N`으로 파이프**: 파이프가 일찍 닫히며 Maven이 죽음(exit 255, 테스트가 중간에 끊김). **교훈: `*> "$env:TEMP\x.log"`로 파일에 받은 뒤 `Select-String -Path`로 읽을 것.**
+- **`./mvnw -pl apm-api -am spring-boot:run`**(README에 적힌 명령): `-am`이 플러그인 없는 루트 pom에도 goal을 실행해 `No plugin found for prefix 'spring-boot'`로 실패. **`-am` 없이 `-pl apm-api spring-boot:run`이 동작.** README는 아직 안 고침.
+- **요구사항 문서의 숫자와 현재 dev 데이터를 직접 비교하려 함**: dev DB 최신 기준월이 문서 작성 시점(2026-09-15)에서 2026-10-16으로 넘어가 있었음. **교훈: 데이터 의존 수치는 기준일을 고정한 쿼리로 대조**(임시 테스트로 수행 후 삭제, `target/test-classes`의 컴파일 결과물도 지울 것 — surefire가 집어 간다).
+- **PowerShell 5.1 함정**: ① `Invoke-WebRequest`는 charset 없는 `application/json`을 Latin-1로 해석해 한글이 깨져 보임(서버 문제 아님) → `RawContentStream`을 UTF8로 디코딩. ② `@('[]' | ConvertFrom-Json).Count`가 1 → 빈 배열 응답을 "1건"으로 오인할 수 있으니 원문으로 확인. ③ `Start-Process`로 띄운 앱은 사용 후 `Get-NetTCPConnection -LocalPort 8080`의 OwningProcess를 `Stop-Process`로 반드시 종료.
+- **Mockito 엄격 스텁**: 예외로 일찍 끝나는 경로에서 쓰이지 않는 스텁은 `UnnecessaryStubbingException` → 공통 헬퍼에서는 `lenient()` 사용. **`BigDecimal.ZERO`는 JSON에 `0`(정수)로 나가므로 `jsonPath(..., is(0.0))`는 실패**한다.
+- **요청받지 않은 리뷰 워크플로우(3관점 + 반박 검증)를 PORT-BE-1 확인 전에 띄움** → 중단되어 결과 없이 끝났고 사용자 확인만 지연시킴. **교훈: 사용자가 요청한 범위와 단계별 확인 흐름을 지킬 것.**
+- (이전 세션 교훈 유지) **private repo `git clone`·sudo·passphrase가 필요한 작업은 직접 시도하지 말고 사용자에게 정확한 명령어를 넘길 것.** 멈춘 git clone류 프로세스는 사용자의 재시도가 진행 중일 수 있으니 함부로 kill 금지. **Windows에서 만든 새 셸 스크립트는 커밋할 때 바로 `git update-index --chmod=+x`.**
 
 ## 5. 다음 세션 시작 시 할 일 (우선순위 순)
-1. **Phase 3 (DDL)**: `EXEC_PLAN-v3.md`의 DDL-1~3(`portfolio_version`/`portfolio_plan_detail`, `portfolio_item_plan`, `alert_item`) — apm-project 쪽 작업이라 이 저장소(api-platform)가 아니라 `apm-project` 세션에서 진행해야 함. api-platform 관점에선 당장 할 일 없음.
-2. api-platform 자체에서 남은 건 EXEC_PLAN 문서상 없음 — Phase 5(Portfolio 백엔드, PORT-BE-1~4)부터 이 저장소에서 실제 API 개발이 시작되는데, 그건 apm-project 쪽 Phase 3(DDL) 완료가 선행 조건.
-3. 재배포 스크립트(`scripts/deploy.sh` 같은 것)는 필요해지면 그때 추가 — 지금은 수동 3줄(`git pull && docker compose build && docker compose up -d`)로 충분하다고 확정함
-4. 새 셸 스크립트 커밋 시 실행 비트 챙기기(위 4번 교훈 참고)
-5. 매 Phase/태스크 끝날 때마다 사용자 확인 받고 다음으로 진행하는 방식 유지, 커밋 전 항상 메시지 먼저 보여주기, Co-Authored-By 절대 추가하지 말 것
+1. **사용자에게 다음 Phase를 확인**(자동으로 시작하지 말 것). 후보:
+   - **Phase 6 (PORT-FE-1~4)**: 프론트라 `apm-project` 저장소 작업. 이 저장소에서는 할 일 없음.
+   - **Phase 7 (ALERT-BE-1/2)**: 이 저장소 작업. **요구사항 문서가 아직 없고**(`alert_item` 테이블은 생성됨) Jira/Todoist 개인 API 토큰이 필요 → 먼저 요구사항/토큰 처리 방식을 사용자와 정할 것.
+   - **Phase 10 (MIGRATE-1~4)**: 우선순위 낮음. `months/dashboard/report/search` Express API 이관.
+2. **PRD 재배포는 사용자 확인 후**: Debian(PRD) `~/lab/api-platform/v1`에서 `git pull && docker compose build && docker compose up -d`. `Dockerfile`은 `-DskipTests`로 빌드하므로 테스트는 로컬에서만 돈다. 새 API는 PRD DB(33306)의 `portfolio_*` 테이블이 있어야 동작(요구사항 문서는 dev·prd 모두 생성됐다고 함 — 이 저장소에서 prd를 직접 확인하진 않았다). git pull은 private repo라 사용자가 직접 실행.
+3. **apm-project 쪽 후속(이 저장소 범위 아님, 사용자에게 알릴 것)**: 요구사항 6장 I(`serve` 프록시: Spring에 `months/dashboard/report/search`가 아직 없음), J(프론트 `useApi`는 GET 전용); 프론트 `itemToTargetRatio`는 서버 `targetRatio`로 대체되어 제거 대상; 비율 입력은 정수 %만, 합계 판정 정확히 100으로 변경(PORT-FE-1); EXEC_PLAN-v3.md의 PLAT/PORT-BE 체크 반영 여부는 확인 안 함.
+4. **알려진 이슈(요청 시에만 수정)**: ① `GlobalExceptionHandler`의 `Exception` 핸들러가 존재하지 않는 경로 404·405 같은 프레임워크 예외까지 500으로 바꿈 ② README의 `spring-boot:run -am` 명령 오류 ③ Mockito self-attach 경고.
+5. 이 세션 파일(`.claude/session-state.md`) 변경은 **아직 커밋 전** — 커밋 메시지를 먼저 보여주고 확인받을 것.
+6. 새 셸 스크립트를 커밋할 때 실행 비트 챙기기, 커밋은 항상 메시지 먼저 보여주고 확인, Co-Authored-By 절대 추가 금지.
 
 ## 6. 주요 관련 파일
-- [README.md](README.md) — 프로젝트 개요, 로컬 실행, 배포 절차
-- [apm-api/src/main/java/darkchoco/apmapi/config/security/](apm-api/src/main/java/darkchoco/apmapi/config/security/) — `SecurityConfig`/`CorsConfig`/`CorsProperties`
-- [apm-api/src/main/java/darkchoco/apmapi/common/exception/](apm-api/src/main/java/darkchoco/apmapi/common/exception/) — `GlobalExceptionHandler`/`ErrorResponse`
-- [apm-api/Dockerfile](apm-api/Dockerfile), [docker-compose.yml](docker-compose.yml), [.env.example](.env.example)
-- Debian(PRD) WSL: `~/lab/api-platform/v1` — 실제 배포 위치, `.env`(git 밖) 존재
-- (별도 저장소) `Z:\lab_ext\cloudscape-personal-platform\services\_infra\mysql8\compose.yml`, `hosts/*.env` — mysql8 공유 인프라(Debian-Dev/Debian 둘 다 이제 `db-net` 구조로 통일됨)
-- `Z:\lab_ext\apm-project\apps\apm-app\docs\EXEC_PLAN-v3.md` — Phase 2~11 전체 태스크 목록(Phase 2 완료 반영은 apm-project 쪽 문서에도 별도 업데이트 필요할 수 있음 — 체크 안 해봄)
+**실행/테스트**: 개발 DB `localhost:43306`(`DB_PASSWORD` 환경변수 필요), 전체 테스트 `./mvnw -pl apm-api -am test`(통합 테스트는 dev DB가 떠 있어야 함, 롤백되므로 데이터를 남기지 않음), 앱 실행 `DB_PASSWORD=... ./mvnw -pl apm-api spring-boot:run`(`-am` 없이)
+
+- [docs/API-REQUIREMENTS-v3-portfolio.md](../docs/API-REQUIREMENTS-v3-portfolio.md) — 요구사항 확정본(원본은 apm-project, **이 사본은 직접 수정 금지**, untracked)
+- [docs/port-be/](../docs/port-be/) — 단계별 문서: `PORT-BE-1-portfolio-versions.md`, `PORT-BE-2-execution-snapshot.md`, `PORT-BE-3-items.md`, `PORT-BE-4-item-plan.md`
+- `apm-api/src/main/java/darkchoco/apmapi/portfolio/`
+  - `controller/` `TargetController`, `VersionController`, `ExecutionSnapshotController`, `ItemController`
+  - `service/` `VersionService`, `VersionSaveValidator`, `ExecutionSnapshotService`, `ItemService`, `TargetService`
+  - `repository/` `VersionRepository`, `TargetRepository`, `ExecutionRepository`, `ExRateRepository`, `HoldingRepository`, `ItemPlanRepository`, `ProductRepository`, **`HoldingQueries`**(집계 SQL 공통 조각 — 규칙을 바꿀 땐 여기서)
+  - `domain/` `VersionLabel`, `TargetRatioCalculator`, `AmountRules`, `HoldingCurrency`, `FxSource`
+  - `dto/` 요청·응답 record
+- `apm-api/src/main/java/darkchoco/apmapi/common/exception/` — `GlobalExceptionHandler`, `ErrorResponse`(code 필드 없음, 확정 H), `InvalidRequestException`(400)/`ResourceNotFoundException`(404)/`ConflictException`(409)/`UnprocessableEntityException`(422)
+- `apm-api/src/main/java/darkchoco/apmapi/config/ClockConfig.java` — Asia/Seoul `Clock`
+- `apm-api/src/test/java/darkchoco/apmapi/portfolio/` — 단위 + 통합 테스트(`PortfolioVersionApiTest`의 `FixedClockConfig`가 시계를 2099-01-15로 고정해 다른 통합 테스트도 재사용)
+- [README.md](../README.md), [apm-api/Dockerfile](../apm-api/Dockerfile), [docker-compose.yml](../docker-compose.yml), [.env.example](../.env.example), [pom.xml](../pom.xml)
+- (별도 저장소) `Z:\lab_ext\apm-project\apps\apm-app\docs\EXEC_PLAN-v3.md`(Phase 2~11 태스크), `Z:\lab_ext\apm-project\scripts\db\ddl\apm_ddl.sql`(스키마 단일 소스), `Z:\lab_ext\cloudscape-personal-platform\`(mysql8 공유 인프라)
+- Debian(PRD) WSL: `~/lab/api-platform/v1` — 배포 위치, `.env`(git 밖)
 
 ---
 다음 세션 시작: `@.claude/session-state.md 읽고 이어서 진행해줘`
