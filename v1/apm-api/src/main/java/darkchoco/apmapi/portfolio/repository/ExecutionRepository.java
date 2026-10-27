@@ -1,5 +1,7 @@
 package darkchoco.apmapi.portfolio.repository;
 
+import static darkchoco.apmapi.portfolio.repository.HoldingQueries.LATEST_ACTIVE_HOLDINGS;
+import static darkchoco.apmapi.portfolio.repository.HoldingQueries.TARGET_MAPPING_JOINS;
 import static darkchoco.apmapi.portfolio.repository.TargetRepository.PORTFOLIO_SCHEME_ID;
 
 import darkchoco.apmapi.portfolio.dto.ExecAmountDto;
@@ -42,26 +44,10 @@ public class ExecutionRepository {
     public List<ExecAmountDto> findExecAmounts() {
         return jdbc.sql("""
                         SELECT sac.scheme_ac_id,
-                               SUM(CASE WHEN h.cur = 'KRW' THEN h.val_krw ELSE 0 END) AS exec_krw,
-                               SUM(CASE WHEN h.cur = 'USD' THEN h.val_usd ELSE 0 END) AS exec_usd,
-                               SUM(CASE WHEN h.cur = 'EUR' THEN h.val_eur ELSE 0 END) AS exec_eur
-                          FROM (SELECT s.product_id, s.currency_unit AS cur, c.val_krw, c.val_usd, c.val_eur
-                                  FROM stock_curr c
-                                  JOIN stock s ON s.s_id = c.s_id
-                                 WHERE c.base_date = (SELECT MAX(base_date) FROM stock_curr)
-                                   AND s.active_yn = 'Y'
-                                UNION ALL
-                                SELECT i.product_id, i.currency_unit, c.val_krw, c.val_usd, c.val_eur
-                                  FROM investment_curr c
-                                  JOIN investment i ON i.invest_id = c.invest_id
-                                 WHERE c.base_date = (SELECT MAX(base_date) FROM investment_curr)
-                                   AND i.active_yn = 'Y') h
-                          JOIN product p                  ON p.product_id = h.product_id
-                          JOIN product_type_mapping m     ON m.product_type_id = p.product_type_id
-                          JOIN scheme_sub_asset_class ssc ON ssc.sub_class_id = m.sub_class_id
-                                                         AND ssc.scheme_id = :schemeId
-                          JOIN scheme_asset_class sac     ON sac.scheme_id = :schemeId
-                                                         AND sac.scheme_ac_id = ssc.scheme_ac_id
+                               COALESCE(SUM(CASE WHEN h.cur = 'KRW' THEN h.val_krw ELSE 0 END), 0) AS exec_krw,
+                               COALESCE(SUM(CASE WHEN h.cur = 'USD' THEN h.val_usd ELSE 0 END), 0) AS exec_usd,
+                               COALESCE(SUM(CASE WHEN h.cur = 'EUR' THEN h.val_eur ELSE 0 END), 0) AS exec_eur
+                          FROM\s""" + LATEST_ACTIVE_HOLDINGS + TARGET_MAPPING_JOINS + """
                          GROUP BY sac.scheme_ac_id
                          ORDER BY sac.scheme_ac_id
                         """)
