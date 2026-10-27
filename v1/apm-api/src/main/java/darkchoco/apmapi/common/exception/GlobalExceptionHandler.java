@@ -5,10 +5,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,6 +26,38 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest()
                 .body(errorResponse(HttpStatus.BAD_REQUEST, message, request));
+    }
+
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRequest(InvalidRequestException ex, WebRequest request) {
+        return ResponseEntity.badRequest()
+                .body(errorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadableBody(HttpMessageNotReadableException ex, WebRequest request) {
+        return ResponseEntity.badRequest()
+                .body(errorResponse(HttpStatus.BAD_REQUEST, "요청 본문을 읽을 수 없습니다", request));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex, WebRequest request) {
+        String message = "%s: 값 형식이 올바르지 않습니다".formatted(ex.getName());
+
+        return ResponseEntity.badRequest()
+                .body(errorResponse(HttpStatus.BAD_REQUEST, message, request));
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(errorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request));
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorResponse(HttpStatus.CONFLICT, ex.getMessage(), request));
     }
 
     @ExceptionHandler(Exception.class)

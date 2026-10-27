@@ -44,6 +44,8 @@
                     <version>3.15.0</version>
                     <configuration>
                         <release>${maven.compiler.release}</release>
+                        <!-- spring-boot-starter-parent를 쓰지 않으므로 직접 켠다. @PathVariable/@RequestParam이 파라미터 이름에 의존 -->
+                        <parameters>true</parameters>
                     </configuration>
                 </plugin>
             </plugins>
