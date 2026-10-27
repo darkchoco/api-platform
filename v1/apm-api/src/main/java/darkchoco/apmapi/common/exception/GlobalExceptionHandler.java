@@ -60,6 +60,12 @@ public class GlobalExceptionHandler {
                 .body(errorResponse(HttpStatus.CONFLICT, ex.getMessage(), request));
     }
 
+    @ExceptionHandler(UnprocessableEntityException.class)
+    public ResponseEntity<ErrorResponse> handleUnprocessable(UnprocessableEntityException ex, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(errorResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, WebRequest request) {
         LOGGER.error("처리되지 않은 예외 발생", ex);
