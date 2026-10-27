@@ -28,6 +28,15 @@ public class HoldingRepository {
      * @param schemeAcId 지정하면 그 대상의 종목만, null이면 전체
      */
     public List<HoldingRow> findHoldings(Integer schemeAcId) {
+        return query(schemeAcId, null);
+    }
+
+    /** 한 종목의 현재 보유분. 보유 중이 아니거나 Portfolio 대상이 아니면 빈 목록. 통화별로 최대 한 행씩 나온다. */
+    public List<HoldingRow> findHoldingsOfProduct(int productId) {
+        return query(null, productId);
+    }
+
+    private List<HoldingRow> query(Integer schemeAcId, Integer productId) {
         return jdbc.sql("""
                         SELECT p.product_id, sac.scheme_ac_id, p.product_nm, p.symbol_alias, p.product_nm_detail, h.cur,
                                COALESCE(SUM(CASE WHEN h.cur = 'KRW' THEN h.val_krw ELSE 0 END), 0) AS current_krw,
@@ -36,11 +45,13 @@ public class HoldingRepository {
                           FROM\s""" + LATEST_ACTIVE_HOLDINGS + TARGET_MAPPING_JOINS + """
                          WHERE h.cur IN ('KRW', 'USD', 'EUR')
                            AND (:schemeAcId IS NULL OR sac.scheme_ac_id = :schemeAcId)
+                           AND (:productId IS NULL OR p.product_id = :productId)
                          GROUP BY p.product_id, sac.scheme_ac_id, p.product_nm, p.symbol_alias, p.product_nm_detail, h.cur
                          ORDER BY sac.scheme_ac_id, p.product_nm, p.product_id, h.cur
                         """)
                 .param("schemeId", PORTFOLIO_SCHEME_ID)
                 .param("schemeAcId", schemeAcId, Types.INTEGER)
+                .param("productId", productId, Types.INTEGER)
                 .query((rs, rowNum) -> new HoldingRow(
                         rs.getInt("product_id"),
                         rs.getInt("scheme_ac_id"),

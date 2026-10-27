@@ -1,6 +1,7 @@
 package darkchoco.apmapi.portfolio.service;
 
 import darkchoco.apmapi.common.exception.InvalidRequestException;
+import darkchoco.apmapi.portfolio.domain.AmountRules;
 import darkchoco.apmapi.portfolio.dto.PlanDetailDto;
 import darkchoco.apmapi.portfolio.dto.VersionSaveRequest;
 import java.math.BigDecimal;
@@ -17,8 +18,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class VersionSaveValidator {
 
-    private static final long MAX_KRW = 999_999_999_999L; // DECIMAL(12)
-    private static final BigDecimal MAX_FOREIGN = new BigDecimal("9999999999.99"); // DECIMAL(12,2)
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
     public void validate(VersionSaveRequest request, Set<Integer> targetIds) {
@@ -107,30 +106,10 @@ public class VersionSaveValidator {
     }
 
     private void checkKrw(String field, Long amount) {
-        if (amount == null) {
-            return;
-        }
-        if (amount < 0) {
-            throw new InvalidRequestException("%s: 0 이상이어야 합니다".formatted(field));
-        }
-        if (amount > MAX_KRW) {
-            throw new InvalidRequestException("%s: 허용 범위를 초과했습니다".formatted(field));
-        }
+        AmountRules.requireKrw(field, amount == null ? null : BigDecimal.valueOf(amount));
     }
 
-    // 달러·유로 금액과 환율은 DECIMAL(12,2) - 소수 2자리까지.
     private void checkForeign(String field, BigDecimal amount) {
-        if (amount == null) {
-            return;
-        }
-        if (amount.signum() < 0) {
-            throw new InvalidRequestException("%s: 0 이상이어야 합니다".formatted(field));
-        }
-        if (amount.stripTrailingZeros().scale() > 2) {
-            throw new InvalidRequestException("%s: 소수 2자리까지만 입력할 수 있습니다".formatted(field));
-        }
-        if (amount.compareTo(MAX_FOREIGN) > 0) {
-            throw new InvalidRequestException("%s: 허용 범위를 초과했습니다".formatted(field));
-        }
+        AmountRules.requireForeign(field, amount);
     }
 }

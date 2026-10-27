@@ -1,5 +1,8 @@
 package darkchoco.apmapi.portfolio.service;
 
+import darkchoco.apmapi.common.exception.InvalidRequestException;
+import darkchoco.apmapi.common.exception.ResourceNotFoundException;
+import darkchoco.apmapi.portfolio.domain.AmountRules;
 import darkchoco.apmapi.portfolio.domain.HoldingCurrency;
 import darkchoco.apmapi.portfolio.domain.TargetRatioCalculator;
 import darkchoco.apmapi.portfolio.domain.TargetRatioCalculator.PlanBasis;
@@ -9,9 +12,13 @@ import darkchoco.apmapi.portfolio.repository.HoldingRepository;
 import darkchoco.apmapi.portfolio.repository.HoldingRow;
 import darkchoco.apmapi.portfolio.repository.ItemPlan;
 import darkchoco.apmapi.portfolio.repository.ItemPlanRepository;
+import darkchoco.apmapi.portfolio.repository.ProductRepository;
 import darkchoco.apmapi.portfolio.repository.VersionHeader;
 import darkchoco.apmapi.portfolio.repository.VersionRepository;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +28,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 종목별 세부 현황. 종목 행은 저장하지 않고 호출 시점마다 최신 기준월의 보유 건에서 구성한다
@@ -34,12 +42,16 @@ public class ItemService {
     private final HoldingRepository holdingRepository;
     private final ItemPlanRepository itemPlanRepository;
     private final VersionRepository versionRepository;
+    private final ProductRepository productRepository;
+    private final Clock clock;
 
     public ItemService(HoldingRepository holdingRepository, ItemPlanRepository itemPlanRepository,
-                       VersionRepository versionRepository) {
+                       VersionRepository versionRepository, ProductRepository productRepository, Clock clock) {
         this.holdingRepository = holdingRepository;
         this.itemPlanRepository = itemPlanRepository;
         this.versionRepository = versionRepository;
+        this.productRepository = productRepository;
+        this.clock = clock;
     }
 
     /**
@@ -47,7 +59,56 @@ public class ItemService {
      * @return schemeAcId, productNm 오름차순
      */
     public List<ItemResponse> getItems(Integer schemeAcId) {
-        Map<Integer, List<HoldingRow>> rowsByProduct = holdingRepository.findHoldings(schemeAcId).stream()
+        return buildItems(holdingRepository.findHoldings(schemeAcId));
+    }
+
+    /**
+     * 종목의 투자계획금액을 저장하고 갱신된 종목 1건을 돌려준다 (targetRatio 재계산 포함).
+     * 통화는 클라이언트가 정하지 않고 종목의 보유 통화로 서버가 정하며, 그 통화의 컬럼에만 저장한다.
+     *
+     * @param planAmount 종목 통화 기준 금액. null이면 "계획 없음"으로 보고 행을 삭제한다
+     */
+    @Transactional
+    public ItemResponse updatePlan(int productId, BigDecimal planAmount) {
+        if (!productRepository.exists(productId)) {
+            throw new ResourceNotFoundException("종목을 찾을 수 없습니다: " + productId);
+        }
+
+        // 현재 보유 중이 아닌 종목(또는 Portfolio 대상이 아닌 종목)은 통화를 알 수 없어 저장하지 않는다.
+        List<HoldingRow> rows = holdingRepository.findHoldingsOfProduct(productId);
+        if (rows.isEmpty()) {
+            throw new InvalidRequestException(
+                    "현재 보유 중인 Portfolio 종목이 아니라 투자계획금액을 저장할 수 없습니다: " + productId);
+        }
+
+        // 통화가 둘 이상으로 나오는 데이터 오류 종목은 조회(toItem)와 같이 첫 통화를 따른다.
+        HoldingCurrency currency = rows.getFirst().currency();
+        if (planAmount == null) {
+            itemPlanRepository.delete(productId);
+            LOGGER.info("종목 투자계획금액 삭제: productId={}", productId);
+        } else {
+            requireValidAmount(currency, planAmount);
+            itemPlanRepository.upsert(productId, currency, planAmount, now());
+            LOGGER.info("종목 투자계획금액 저장: productId={}, currency={}, planAmount={}", productId, currency, planAmount);
+        }
+
+        return buildItems(rows).getFirst();
+    }
+
+    private void requireValidAmount(HoldingCurrency currency, BigDecimal planAmount) {
+        switch (currency) {
+            case KRW -> AmountRules.requireKrw("planAmount", planAmount);
+            case USD, EUR -> AmountRules.requireForeign("planAmount", planAmount);
+        }
+    }
+
+    // 초 미만은 버린다 - DATETIME에 넣을 때 DB가 반올림하는 것을 피한다.
+    private LocalDateTime now() {
+        return LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    private List<ItemResponse> buildItems(List<HoldingRow> holdings) {
+        Map<Integer, List<HoldingRow>> rowsByProduct = holdings.stream()
                 .collect(Collectors.groupingBy(HoldingRow::productId, LinkedHashMap::new, Collectors.toList()));
 
         Map<Integer, ItemPlan> planByProduct = itemPlanRepository.findAll().stream()
