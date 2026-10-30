@@ -49,8 +49,8 @@ class ExecutionSnapshotServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 2026-10-25 09:12:00.7 (Asia/Seoul)
-        Clock clock = Clock.fixed(Instant.parse("2026-10-25T00:12:00.700Z"), ZoneId.of("Asia/Seoul"));
+        // 2026-10-25 09:12:00.7 (Europe/Berlin)
+        Clock clock = Clock.fixed(Instant.parse("2026-10-25T08:12:00.700Z"), ZoneId.of("Europe/Berlin"));
         service = new ExecutionSnapshotService(executionRepository, exRateRepository, targetRepository, clock);
     }
 

@@ -17,7 +17,7 @@
 
 ### 동작
 - **통화는 서버가 정한다**: 종목의 보유 통화(`currency`)에 해당하는 컬럼(`KRW`→`plan_krw`, `USD`→`plan_usd`, `EUR`→`plan_eur`)에만 저장하고 나머지 두 컬럼은 **NULL로 만든다**. 다른 통화 컬럼에 값이 남아 있던 행도 이때 정리된다.
-- **upsert**: `portfolio_item_plan`(`product_id` PK)에 `INSERT ... ON DUPLICATE KEY UPDATE`, `upd_date` = 서버 시각(Asia/Seoul, 초 단위). 버전 이력은 두지 않고 최신값만 유지한다. MySQL 8.0.20+에서 deprecated인 `VALUES()` 대신 같은 이름 있는 파라미터를 재사용했다.
+- **upsert**: `portfolio_item_plan`(`product_id` PK)에 `INSERT ... ON DUPLICATE KEY UPDATE`, `upd_date` = 서버 시각(`app.timezone`, 기본 Europe/Berlin, 초 단위). 버전 이력은 두지 않고 최신값만 유지한다. MySQL 8.0.20+에서 deprecated인 `VALUES()` 대신 같은 이름 있는 파라미터를 재사용했다.
 - **`planAmount`가 null이면 "계획 없음"** — 행을 삭제한다. 행이 없어도 오류가 아니다(멱등).
 - **검증 순서와 상태코드**
   1. `productId`가 `product`에 없으면 **404**

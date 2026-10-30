@@ -51,8 +51,8 @@ class ItemServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 2026-10-27 22:30:00.9 (Asia/Seoul)
-        Clock clock = Clock.fixed(Instant.parse("2026-10-27T13:30:00.900Z"), ZoneId.of("Asia/Seoul"));
+        // 2026-10-27 22:30:00.9 (Europe/Berlin)
+        Clock clock = Clock.fixed(Instant.parse("2026-10-27T21:30:00.900Z"), ZoneId.of("Europe/Berlin"));
         service = new ItemService(holdingRepository, itemPlanRepository, versionRepository, productRepository, clock);
     }
 

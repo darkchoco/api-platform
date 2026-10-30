@@ -31,6 +31,17 @@ DB_PASSWORD=<비밀번호> ./mvnw -pl apm-api -am spring-boot:run
 ./mvnw -pl apm-api -am test
 ```
 
+### 시간대
+
+애플리케이션의 시간대는 설정값 **`app.timezone` 하나**(기본 `Europe/Berlin`, `application.yml`)로 정한다. 이 값을 두 곳이 함께 쓴다.
+
+- `Clock` 빈(`ClockConfig`) — 월 판정(`v{YYMM}`)과 `ins_date`/`upd_date`/`fetchDate` 생성
+- JDBC URL의 `serverTimezone` (`application-dev.yml`, `application-prd.yml`의 `${app.timezone}`)
+
+바꿀 때는 `application.yml`의 값을 고치거나 `APP_TIMEZONE` 환경변수(또는 `--app.timezone=`)로 덮어쓴다. 잘못된 시간대 이름이면 기동에 실패한다. 단, `docker-compose.yml`은 `APP_TIMEZONE`을 컨테이너로 전달하지 않으므로 PRD에서 덮어쓰려면 `environment`에 추가해야 한다.
+
+> 이미 저장된 `ins_date`/`upd_date` 등 DATETIME 값은 변환되지 않는다. 시간대를 바꾸면 그 시점부터 새로 쓰는 값만 새 시간대 기준이 된다.
+
 ## 배포
 
 배포 대상은 **Debian WSL(PRD)** — Docker 컨테이너로 상시 구동한다. 이미지는 **PRD 호스트에서 직접 빌드**한다(Windows 개발 머신에는 Docker가 없고, PRD가 곧 배포 호스트라 별도 이미지 전달 과정이 필요 없다).

@@ -39,7 +39,7 @@ import org.springframework.dao.DuplicateKeyException;
 @ExtendWith(MockitoExtension.class)
 class VersionServiceTest {
 
-    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+    private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
 
     @Mock
     private VersionRepository versionRepository;
@@ -50,8 +50,8 @@ class VersionServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 2026-11-05 10:00:00.5 (Asia/Seoul) - 월이 바뀐 시점을 가정한다
-        Clock clock = Clock.fixed(Instant.parse("2026-11-05T01:00:00.500Z"), SEOUL);
+        // 2026-11-05 10:00:00.5 (Europe/Berlin) - 월이 바뀐 시점을 가정한다
+        Clock clock = Clock.fixed(Instant.parse("2026-11-05T09:00:00.500Z"), BERLIN);
         service = new VersionService(versionRepository, targetRepository, new VersionSaveValidator(), clock);
     }
 

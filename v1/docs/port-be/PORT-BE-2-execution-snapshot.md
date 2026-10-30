@@ -50,7 +50,7 @@
 1. **보유 데이터가 전혀 없을 때**(`baseDate`를 정할 수 없을 때)는 **404**. 422는 환율 누락 전용이라 쓰지 않았다.
 2. **수동 환율은 0보다 커야 하고 소수 2자리까지**(위반 시 400). 환율 0은 계획금 환산이 무의미하고, 저장 컬럼이 `DECIMAL(12,2)`이다.
 3. **`ex_rate`의 `usd` 또는 `eur`가 NULL인 행은 후보에서 제외**한다. 그렇지 않으면 가장 가까운 행이 NULL이어서 환율이 비어 나갈 수 있다.
-4. `baseDate`·`fxDate`는 날짜(`yyyy-MM-dd`), `fetchDate`는 Asia/Seoul 기준 초 단위 시각이다.
+4. `baseDate`·`fxDate`는 날짜(`yyyy-MM-dd`), `fetchDate`는 `app.timezone`(기본 Europe/Berlin) 기준 초 단위 시각이다.
 5. 환율 비교는 시각이 아니라 **날짜 단위**(`ex_rate.base_date`의 날짜 부분)로 한다.
 6. (PORT-BE-3 커밋에서 보강) `val_usd`/`val_eur`가 NULL인 행만 있는 대상에서 합계가 NULL로 나가지 않도록 `COALESCE`를 추가했다.
 

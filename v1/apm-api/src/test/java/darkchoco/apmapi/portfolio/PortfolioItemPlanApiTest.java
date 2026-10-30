@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 종목 투자계획금액 저장 API(PORT-BE-4)를 실제 dev DB에 대해 검증한다. 테스트마다 롤백되어 dev 데이터를 남기지 않고,
- * 시계를 2099-01-15 10:00:00(Asia/Seoul)로 고정한다. dev DB(43306)와 DB_PASSWORD가 필요하다.
+ * 시계를 2099-01-15 10:00:00(Europe/Berlin)로 고정한다. dev DB(43306)와 DB_PASSWORD가 필요하다.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

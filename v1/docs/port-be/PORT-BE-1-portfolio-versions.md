@@ -19,7 +19,7 @@
 
 ### 라벨 규칙 (2.2.1)
 - 서버가 `v{YYMM}.{n}`으로 생성하고 클라이언트는 라벨을 보내지 않는다.
-- `baseVersionId` 없는 POST → 이번 달(Asia/Seoul) `v{YYMM}.0`. 이미 있으면 **409**.
+- `baseVersionId` 없는 POST → 이번 달(`app.timezone`, 기본 Europe/Berlin) `v{YYMM}.0`. 이미 있으면 **409**.
 - `baseVersionId` 있는 POST → 기준 버전의 접두사를 유지한 채 같은 접두사 중 최대 `n` + 1. 기준 버전이 없으면 404, 라벨 형식이 `^v\d{4}\.\d+$`가 아니면 400.
 - 동시 저장으로 `UNIQUE(version_label)`을 위반하면 `DuplicateKeyException`을 409로 변환한다.
 
@@ -38,7 +38,7 @@
 - `portfolio/repository/` `TargetRepository`, `VersionRepository`, `VersionHeader`
 - `portfolio/domain/VersionLabel` — 라벨 파싱/증가 규칙
 - `portfolio/dto/` 요청·응답 record
-- `config/ClockConfig` — `Clock`을 Asia/Seoul로 고정
+- `config/ClockConfig` — `Clock`을 `app.timezone`(기본 Europe/Berlin)으로 고정
 - `common/exception/` 예외 3종과 핸들러
 
 ## 2. 검증
@@ -57,7 +57,7 @@
 4. 비율은 DB 스케일 그대로 나간다(`0.600000`). JSON number로는 동일하다.
 5. 시각은 초 미만을 버려서 저장한다(DB `DATETIME`이 반올림하는 것 방지).
 6. **루트 `pom.xml`에 `<parameters>true</parameters>` 추가**: `spring-boot-starter-parent`를 쓰지 않아 없으면 `@PathVariable int versionId` 등이 런타임에 실패한다.
-7. **요구사항 K(시간대) 해소**: `ClockConfig`로 월 판정과 `ins_date`/`upd_date`를 항상 Asia/Seoul로 고정. 개발 PC의 JVM 기본 시간대는 Asia/Seoul이 아니었으므로(서버 로그 시각이 `+01:00`) 고정이 실제로 필요했다.
+7. **요구사항 K(시간대) 해소**: `ClockConfig`로 월 판정과 `ins_date`/`upd_date`를 호스트 시간대와 무관하게 `app.timezone` 기준으로 고정. 처음에는 Asia/Seoul로 하드코딩했으나(JDBC `serverTimezone`도 yml마다 따로 하드코딩), 이후 **`app.timezone` 하나(기본 Europe/Berlin)를 `Clock`과 JDBC `serverTimezone`이 함께 쓰도록 바꿨다**. 설정 방법은 [README](../../README.md)의 "시간대" 참고.
 
 ## 4. 알려진 이슈 (이 단계 범위 밖, 수정하지 않음)
 

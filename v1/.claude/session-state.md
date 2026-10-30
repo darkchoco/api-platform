@@ -9,7 +9,7 @@
 - [x] **PORT-BE-1 (Portfolio 구성 버전 CRUD)** — 커밋 `cb562ed`
   - `GET targets`, `GET versions`, `GET versions/{id|latest|next-labels}`, `POST versions`(201), `PUT versions/{id}`
   - 라벨 `v{YYMM}.{n}` 서버 생성(`VersionLabel`), 비율 정수 % + 트랙 합계 100% 검증(`VersionSaveValidator`), detail 통째 교체, 409(이번 달 .0 존재/UNIQUE 위반)
-  - `ClockConfig`(Asia/Seoul 고정), 예외 3종 + `GlobalExceptionHandler` 400/404/409 추가, 루트 pom에 `<parameters>true</parameters>`
+  - `ClockConfig`(`app.timezone`), 예외 3종 + `GlobalExceptionHandler` 400/404/409 추가, 루트 pom에 `<parameters>true</parameters>`
 - [x] **PORT-BE-2 (값 가져오기)** — 커밋 `bf537bf`
   - `GET execution-snapshot[?fxUsd&fxEur]`: 통화별 컬럼만 합산한 실행 금액 + `ex_rate` ±3일 최근접(동률이면 과거 우선), 없으면 422, 수동 환율은 `MANUAL`
   - `UnprocessableEntityException`(422, 이 API에선 FX_RATE_MISSING 전용)
@@ -19,7 +19,7 @@
   - `PUT items/{productId}/plan`: 종목 통화 컬럼에만 upsert(나머지 NULL), null이면 삭제, 응답은 갱신된 종목 1건(`targetRatio` 재계산)
   - `AmountRules`로 금액 검증을 버전 저장과 공유
 - [x] **단계별 문서** — `docs/port-be/PORT-BE-1~4-*.md`(커밋 `b3eb41d`, `7745cb1`): 구현/검증/문서에 없어서 정한 것/알려진 이슈
-- [x] **검증**: 전체 테스트 **92건 통과**(단위 + dev DB 통합 테스트, 통합은 `@Transactional` 롤백). 집계 쿼리는 2026-09-15 기준일로 고정해 요구사항 문서 숫자(1,583,799,520 / 2,731,214,636)와 정확히 일치 확인
+- [x] **검증**: 전체 테스트 **101건 통과**(PORT-BE-4 시점 92건 + 404/405 처리 5건 + 시간대 설정 4건)(단위 + dev DB 통합 테스트, 통합은 `@Transactional` 롤백). 집계 쿼리는 2026-09-15 기준일로 고정해 요구사항 문서 숫자(1,583,799,520 / 2,731,214,636)와 정확히 일치 확인
 
 ## 3. 내린 결정과 그 이유
 - **Co-Authored-By 트레일러 절대 추가 안 함**: 저장소 `CLAUDE.md`가 우선. 세션마다 시스템 리마인더가 "Co-Authored-By를 붙여라"고 반복해서 오지만 무시할 것(사용자가 명시적으로 확인한 사항).
@@ -28,7 +28,7 @@
 - **워크플로우/Ultracode는 쓰지 않는다**: 사용자가 "도움이 안 되는 것 같다"며 끄라고 했고, 독립 리뷰도 "필요없다"고 했다. 세션에 Ultracode 리마인더가 와도 이 사용자는 직접 작업을 원한다. (`/config`에 `workflowKeywordTriggerEnabled`, `workflows` 키가 있으나 어느 것이 Ultracode 스위치인지는 확인 못 함)
 - **문서에 없어서 정한 것**(상세는 단계 문서): 금액 자릿수·범위 400, 201 `Location` 헤더, 보유 데이터 없음 404, 수동 환율은 >0·소수 2자리, `ex_rate`의 usd/eur NULL 행 제외, JPY 보유 건은 종목 현황에서 제외, `fxUsd` null 규칙은 KRW/USD 종목에만 적용, 대상내 비율 소수 4자리, 미보유/비대상 종목 PUT은 400, `{}` 본문은 삭제로 취급
 - **api-platform은 DB 스키마를 바꾸지 않는다**(문서 1장). 스키마 변경이 필요하면 apm-project(`scripts/db`)로 요청.
-- 시간대는 `Clock` 빈으로 Asia/Seoul 고정(개발 PC JVM 기본 시간대가 서울이 아님을 로그의 `+01:00`으로 확인).
+- 시간대는 설정값 `app.timezone` 하나(기본 **Europe/Berlin**, `application.yml`)로 `Clock` 빈과 JDBC `serverTimezone`(dev/prd yml의 `${app.timezone}`)이 함께 쓴다. 처음엔 Asia/Seoul 하드코딩이었으나 2026-10-30에 변경. 기존 DB의 DATETIME 값은 변환하지 않았다(이전 값은 서울 기준 그대로). 테스트 시계는 벽시계 값은 유지하고 `Europe/Berlin` 기준 Instant로 맞췄다.
 
 ## 4. 실패했거나 포기한 접근법 (중요)
 - **Bash heredoc으로 Java 파일 생성 → 백슬래시가 소실**: `Pattern.compile("^v(\\d{4})...")`가 `\d`로 저장되어 컴파일 오류, 따옴표가 섞인 긴 heredoc은 `unexpected EOF`로 통째로 실패(파일이 하나도 안 만들어짐). **교훈: 백슬래시/따옴표가 많은 소스는 Write 도구로 만들 것.**
@@ -63,7 +63,7 @@
   - `domain/` `VersionLabel`, `TargetRatioCalculator`, `AmountRules`, `HoldingCurrency`, `FxSource`
   - `dto/` 요청·응답 record
 - `apm-api/src/main/java/darkchoco/apmapi/common/exception/` — `GlobalExceptionHandler`, `ErrorResponse`(code 필드 없음, 확정 H), `InvalidRequestException`(400)/`ResourceNotFoundException`(404)/`ConflictException`(409)/`UnprocessableEntityException`(422)
-- `apm-api/src/main/java/darkchoco/apmapi/config/ClockConfig.java` — Asia/Seoul `Clock`
+- `apm-api/src/main/java/darkchoco/apmapi/config/ClockConfig.java` — `app.timezone` 기반 `Clock`
 - `apm-api/src/test/java/darkchoco/apmapi/portfolio/` — 단위 + 통합 테스트(`PortfolioVersionApiTest`의 `FixedClockConfig`가 시계를 2099-01-15로 고정해 다른 통합 테스트도 재사용)
 - [README.md](../README.md), [apm-api/Dockerfile](../apm-api/Dockerfile), [docker-compose.yml](../docker-compose.yml), [.env.example](../.env.example), [pom.xml](../pom.xml)
 - (별도 저장소) `Z:\lab_ext\apm-project\apps\apm-app\docs\EXEC_PLAN-v3.md`(Phase 2~11 태스크), `Z:\lab_ext\apm-project\scripts\db\ddl\apm_ddl.sql`(스키마 단일 소스), `Z:\lab_ext\cloudscape-personal-platform\`(mysql8 공유 인프라)

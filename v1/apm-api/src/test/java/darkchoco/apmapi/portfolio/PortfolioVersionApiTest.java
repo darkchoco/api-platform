@@ -201,8 +201,8 @@ class PortfolioVersionApiTest {
         @Bean
         @Primary
         Clock fixedClock() {
-            // 2099-01-15 10:00:00 Asia/Seoul
-            return Clock.fixed(Instant.parse("2099-01-15T01:00:00Z"), ZoneId.of("Asia/Seoul"));
+            // 2099-01-15 10:00:00 Europe/Berlin
+            return Clock.fixed(Instant.parse("2099-01-15T09:00:00Z"), ZoneId.of("Europe/Berlin"));
         }
     }
 }
