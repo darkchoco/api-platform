@@ -1,5 +1,6 @@
 package darkchoco.apmapi.common.exception;
 
+import jakarta.servlet.ServletException;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,12 +67,39 @@ public class GlobalExceptionHandler {
                 .body(errorResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request));
     }
 
+    /**
+     * 존재하지 않는 경로(404), 허용되지 않는 메서드(405) 같은 Spring MVC 자체 예외.
+     * 이 예외들은 상태 코드를 스스로 갖고 있으므로 그대로 따르고, 5xx면 예상 밖 오류로 취급한다.
+     */
+    @ExceptionHandler(ServletException.class)
+    public ResponseEntity<ErrorResponse> handleServletException(ServletException ex, WebRequest request) {
+        if (!(ex instanceof org.springframework.web.ErrorResponse frameworkError)
+                || frameworkError.getStatusCode().is5xxServerError()) {
+            return handleUnexpected(ex, request);
+        }
+
+        HttpStatus status = HttpStatus.valueOf(frameworkError.getStatusCode().value());
+
+        return ResponseEntity.status(status)
+                .headers(frameworkError.getHeaders())
+                .body(errorResponse(status, messageFor(status), request));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, WebRequest request) {
         LOGGER.error("처리되지 않은 예외 발생", ex);
 
         return ResponseEntity.internalServerError()
                 .body(errorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다", request));
+    }
+
+    private String messageFor(HttpStatus status) {
+        return switch (status) {
+            case NOT_FOUND -> "요청한 경로를 찾을 수 없습니다";
+            case METHOD_NOT_ALLOWED -> "허용되지 않는 요청 방식입니다";
+            case UNSUPPORTED_MEDIA_TYPE -> "지원하지 않는 요청 형식입니다";
+            default -> "요청을 처리할 수 없습니다";
+        };
     }
 
     private ErrorResponse errorResponse(HttpStatus status, String message, WebRequest request) {

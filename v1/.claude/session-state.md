@@ -47,7 +47,7 @@
    - **Phase 10 (MIGRATE-1~4)**: 우선순위 낮음. `months/dashboard/report/search` Express API 이관.
 2. **PRD 재배포는 사용자 확인 후**: Debian(PRD) `~/lab/api-platform/v1`에서 `git pull && docker compose build && docker compose up -d`. `Dockerfile`은 `-DskipTests`로 빌드하므로 테스트는 로컬에서만 돈다. 새 API는 PRD DB(33306)의 `portfolio_*` 테이블이 있어야 동작(요구사항 문서는 dev·prd 모두 생성됐다고 함 — 이 저장소에서 prd를 직접 확인하진 않았다). git pull은 private repo라 사용자가 직접 실행.
 3. **apm-project 쪽 후속(이 저장소 범위 아님, 사용자에게 알릴 것)**: 요구사항 6장 I(`serve` 프록시: Spring에 `months/dashboard/report/search`가 아직 없음), J(프론트 `useApi`는 GET 전용); 프론트 `itemToTargetRatio`는 서버 `targetRatio`로 대체되어 제거 대상; 비율 입력은 정수 %만, 합계 판정 정확히 100으로 변경(PORT-FE-1); EXEC_PLAN-v3.md의 PLAT/PORT-BE 체크 반영 여부는 확인 안 함.
-4. **알려진 이슈(요청 시에만 수정)**: ① `GlobalExceptionHandler`의 `Exception` 핸들러가 존재하지 않는 경로 404·405 같은 프레임워크 예외까지 500으로 바꿈 ② README의 `spring-boot:run -am` 명령 오류 ③ Mockito self-attach 경고.
+4. **알려진 이슈(요청 시에만 수정)**: ① ~~`GlobalExceptionHandler`가 404·405 같은 프레임워크 예외를 500으로 바꿈~~ → `ServletException` 핸들러로 해결(미커밋) ② README의 `spring-boot:run -am` 명령 오류 ③ Mockito self-attach 경고.
 5. 이 세션 파일(`.claude/session-state.md`) 변경은 **아직 커밋 전** — 커밋 메시지를 먼저 보여주고 확인받을 것.
 6. 새 셸 스크립트를 커밋할 때 실행 비트 챙기기, 커밋은 항상 메시지 먼저 보여주고 확인, Co-Authored-By 절대 추가 금지.
 
