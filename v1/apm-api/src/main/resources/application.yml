@@ -24,3 +24,6 @@ app:
   timezone: Europe/Berlin
   cors:
     allowed-origins: []
+  alert:
+    # 기동 시 알림 재계산(만기일). 테스트에서는 끈다(src/test/resources/config/application.yml).
+    refresh-on-startup: true

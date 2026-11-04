@@ -1,0 +1,5 @@
+# 테스트 전용 설정. classpath:/config/application.yml은 main의 application.yml을 대체하지 않고 그 위에 덮어써진다.
+app:
+  alert:
+    # 기동 시 재계산은 테스트의 @Transactional 롤백 밖에서 돌아 dev DB의 alert_item을 실제로 바꾸므로 끈다.
+    refresh-on-startup: false
