@@ -19,17 +19,33 @@
 
 ### 로컬 실행
 
-```bash
-DB_PASSWORD=<비밀번호> ./mvnw -pl apm-api -am spring-boot:run
+저장소의 `v1` 폴더에서 실행한다. PowerShell:
+
+```powershell
+$env:DB_PASSWORD = "<비밀번호>"
+.\mvnw.cmd -pl apm-api spring-boot:run
 ```
 
-기본 활성 프로파일은 `dev`이고, `DB_PASSWORD`는 기본값이 없어 반드시 지정해야 한다.
+Git Bash:
+
+```bash
+DB_PASSWORD=<비밀번호> ./mvnw -pl apm-api spring-boot:run
+```
+
+- 기본 활성 프로파일은 `dev`이고, `DB_PASSWORD`는 기본값이 없어 반드시 지정해야 한다.
+- `spring-boot:run`에는 `-am`을 붙이지 않는다(붙이면 함께 빌드되는 부모 pom에서도 `spring-boot:run`을 실행하려 한다).
+- 주소는 `http://localhost:8080`, 확인은 `http://localhost:8080/actuator/health`. 종료는 그 터미널에서 `Ctrl+C`.
+- Jira/Todoist 알림을 쓰려면 실행 전에 `$env:ALERT_JIRA_BASE_URL` 등도 넣는다([알림 외부 소스](#알림-외부-소스-jira--todoist) 참고). 비워 두면 건너뛴다.
+- 기동하면 만기 알림 계산이 dev `alert_item`에 실제로 쓴다(테스트와 달리 롤백되지 않음).
 
 ### 테스트
 
-```bash
-./mvnw -pl apm-api -am test
+```powershell
+.\mvnw.cmd -pl apm-api -am test *> "$env:TEMP\test.log"
 ```
+
+Git Bash에서는 `./mvnw -pl apm-api -am test`. dev DB와 `DB_PASSWORD`가 필요하다(롤백되므로 데이터는 남지 않는다).
+PowerShell에서 Maven 출력을 `| Select-String | Select-Object -First N`처럼 파이프로 자르면 Maven이 중간에 죽으니, 위처럼 파일로 받은 뒤 `Select-String -Path`로 읽는다.
 
 ### 시간대
 
