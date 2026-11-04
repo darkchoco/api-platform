@@ -74,6 +74,64 @@ public class AlertItemRepository {
                 .update();
     }
 
+    /** 화면에 표시할 알림 전부: status='OPEN' AND dismissed_yn='N'. 정렬은 서비스가 한다. */
+    public List<VisibleAlert> findVisible() {
+        return jdbc.sql("""
+                        SELECT alert_id, source_type, tier, title, detail_url, due_date
+                        FROM alert_item
+                        WHERE status = 'OPEN'
+                          AND dismissed_yn = 'N'
+                        """)
+                .query((rs, rowNum) -> new VisibleAlert(
+                        rs.getInt("alert_id"),
+                        AlertSourceType.valueOf(rs.getString("source_type")),
+                        AlertTier.valueOf(rs.getString("tier")),
+                        rs.getString("title"),
+                        rs.getString("detail_url"),
+                        rs.getObject("due_date", LocalDateTime.class)))
+                .list();
+    }
+
+    public boolean exists(int alertId) {
+        return jdbc.sql("SELECT COUNT(*) FROM alert_item WHERE alert_id = :alertId")
+                .param("alertId", alertId)
+                .query(Integer.class)
+                .single() > 0;
+    }
+
+    /**
+     * 알림 하나를 닫는다. 이미 닫혀 있으면 아무것도 바꾸지 않는다(닫은 시각을 처음 값으로 유지).
+     *
+     * @return 이번에 닫은 행 수(0 또는 1)
+     */
+    public int dismiss(int alertId, LocalDateTime now) {
+        return jdbc.sql("""
+                        UPDATE alert_item
+                        SET dismissed_yn = 'Y', dismissed_at = :now
+                        WHERE alert_id = :alertId
+                          AND dismissed_yn = 'N'
+                        """)
+                .param("now", now)
+                .param("alertId", alertId)
+                .update();
+    }
+
+    /**
+     * 지금 화면에 표시되는 알림(findVisible과 같은 조건)을 모두 닫는다.
+     *
+     * @return 닫은 행 수
+     */
+    public int dismissAllVisible(LocalDateTime now) {
+        return jdbc.sql("""
+                        UPDATE alert_item
+                        SET dismissed_yn = 'Y', dismissed_at = :now
+                        WHERE status = 'OPEN'
+                          AND dismissed_yn = 'N'
+                        """)
+                .param("now", now)
+                .update();
+    }
+
     // title은 VARCHAR(255)다. 상품명(255)에 금융기관명이 붙으면 넘칠 수 있어 잘라서 저장한다.
     private static String truncateTitle(String title) {
         return title.length() <= TITLE_MAX_LENGTH ? title : title.substring(0, TITLE_MAX_LENGTH);

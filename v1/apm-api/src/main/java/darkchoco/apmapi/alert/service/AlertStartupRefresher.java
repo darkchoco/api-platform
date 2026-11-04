@@ -14,16 +14,17 @@ public class AlertStartupRefresher {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AlertStartupRefresher.class);
 
-    private final MaturityAlertService maturityAlertService;
+    private final MaturityRefreshTracker maturityRefreshTracker;
 
-    public AlertStartupRefresher(MaturityAlertService maturityAlertService) {
-        this.maturityAlertService = maturityAlertService;
+    public AlertStartupRefresher(MaturityRefreshTracker maturityRefreshTracker) {
+        this.maturityRefreshTracker = maturityRefreshTracker;
     }
 
+    // 계산 날짜를 기록해 두어야 같은 날 첫 조회에서 다시 계산하지 않는다.
     @EventListener(ApplicationReadyEvent.class)
     public void refreshOnStartup() {
         try {
-            maturityAlertService.refresh();
+            maturityRefreshTracker.refreshNow();
         } catch (RuntimeException e) {
             LOGGER.error("기동 시 만기 알림 재계산 실패 - 기동은 계속한다", e);
         }
