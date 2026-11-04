@@ -27,3 +27,11 @@ app:
   alert:
     # 기동 시 알림 재계산(만기일). 테스트에서는 끈다(src/test/resources/config/application.yml).
     refresh-on-startup: true
+    # Jira/Todoist에서 apm_alert 라벨 항목을 가져온다. 비밀값은 환경변수로만 넣고, 비어 있는 소스는 비활성(SKIPPED)이다.
+    # 라벨(label, 기본 apm_alert)과 호출 타임아웃(timeout, 기본 10s)도 소스별로 바꿀 수 있다.
+    jira:
+      base-url: ${ALERT_JIRA_BASE_URL:}
+      email: ${ALERT_JIRA_EMAIL:}
+      api-token: ${ALERT_JIRA_API_TOKEN:}
+    todoist:
+      api-token: ${ALERT_TODOIST_API_TOKEN:}

@@ -3,3 +3,10 @@ app:
   alert:
     # 기동 시 재계산은 테스트의 @Transactional 롤백 밖에서 돌아 dev DB의 alert_item을 실제로 바꾸므로 끈다.
     refresh-on-startup: false
+    # 개발 머신에 ALERT_* 환경변수가 있어도 테스트가 실제 Jira/Todoist를 부르지 않도록 비운다.
+    jira:
+      base-url: ""
+      email: ""
+      api-token: ""
+    todoist:
+      api-token: ""

@@ -4,6 +4,8 @@ import darkchoco.apmapi.alert.dto.AlertRefreshResponse;
 import darkchoco.apmapi.alert.dto.AlertResponse;
 import darkchoco.apmapi.alert.dto.DismissAllResponse;
 import darkchoco.apmapi.alert.dto.SourceRefreshResult;
+import darkchoco.apmapi.alert.external.JiraAlertSource;
+import darkchoco.apmapi.alert.external.TodoistAlertSource;
 import darkchoco.apmapi.alert.repository.AlertItemRepository;
 import darkchoco.apmapi.alert.repository.VisibleAlert;
 import darkchoco.apmapi.common.exception.ResourceNotFoundException;
@@ -30,17 +32,21 @@ public class AlertService {
             .thenComparing(VisibleAlert::dueDate, Comparator.nullsLast(Comparator.naturalOrder()))
             .thenComparingInt(VisibleAlert::alertId);
 
-    // Jira/Todoist 연동은 ALERT-BE-2에서 붙인다. 그 전까지는 설정이 없는 소스와 같게 응답한다.
-    private static final String NOT_CONFIGURED = "not configured";
-
     private final AlertItemRepository alertItemRepository;
     private final MaturityRefreshTracker maturityRefreshTracker;
+    private final ExternalAlertSyncService externalAlertSyncService;
+    private final JiraAlertSource jiraAlertSource;
+    private final TodoistAlertSource todoistAlertSource;
     private final Clock clock;
 
     public AlertService(AlertItemRepository alertItemRepository, MaturityRefreshTracker maturityRefreshTracker,
-                        Clock clock) {
+                        ExternalAlertSyncService externalAlertSyncService, JiraAlertSource jiraAlertSource,
+                        TodoistAlertSource todoistAlertSource, Clock clock) {
         this.alertItemRepository = alertItemRepository;
         this.maturityRefreshTracker = maturityRefreshTracker;
+        this.externalAlertSyncService = externalAlertSyncService;
+        this.jiraAlertSource = jiraAlertSource;
+        this.todoistAlertSource = todoistAlertSource;
         this.clock = clock;
     }
 
@@ -81,8 +87,8 @@ public class AlertService {
     public AlertRefreshResponse refreshAll() {
         return new AlertRefreshResponse(
                 refreshMaturity(),
-                SourceRefreshResult.skipped(NOT_CONFIGURED),
-                SourceRefreshResult.skipped(NOT_CONFIGURED));
+                externalAlertSyncService.sync(jiraAlertSource),
+                externalAlertSyncService.sync(todoistAlertSource));
     }
 
     private SourceRefreshResult refreshMaturity() {

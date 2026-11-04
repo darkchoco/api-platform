@@ -42,6 +42,18 @@ DB_PASSWORD=<비밀번호> ./mvnw -pl apm-api -am spring-boot:run
 
 > 이미 저장된 `ins_date`/`upd_date` 등 DATETIME 값은 변환되지 않는다. 시간대를 바꾸면 그 시점부터 새로 쓰는 값만 새 시간대 기준이 된다.
 
+### 알림 외부 소스 (Jira / Todoist)
+
+`apm_alert` 라벨이 붙은 Jira 이슈와 Todoist 태스크를 알림으로 가져온다(기동 시 1회 + `POST /api/alerts/refresh`). 접속 정보는 환경변수로만 넣는다. 비어 있는 소스는 비활성(`SKIPPED`)으로 건너뛰므로 토큰 없이도 기동된다.
+
+| 환경변수 | 설명 |
+|----------|------|
+| `ALERT_JIRA_BASE_URL` | Jira Cloud 주소 (예: `https://xxx.atlassian.net`) |
+| `ALERT_JIRA_EMAIL`, `ALERT_JIRA_API_TOKEN` | Jira Basic Auth (이메일 + API 토큰) |
+| `ALERT_TODOIST_API_TOKEN` | Todoist 개인 API 토큰 |
+
+PRD에서는 `.env`에 값을 채우면 `docker-compose.yml`이 컨테이너로 전달한다. 테스트는 이 값과 무관하게 실제 Jira/Todoist를 부르지 않는다(`src/test/resources/config/application.yml`에서 비움).
+
 ## 배포
 
 배포 대상은 **Debian WSL(PRD)** — Docker 컨테이너로 상시 구동한다. 이미지는 **PRD 호스트에서 직접 빌드**한다(Windows 개발 머신에는 Docker가 없고, PRD가 곧 배포 호스트라 별도 이미지 전달 과정이 필요 없다).
