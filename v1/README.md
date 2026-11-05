@@ -81,7 +81,8 @@ MySQL(`mysql8`)은 이 저장소가 관리하지 않는 별도 공유 인프라�
 ```bash
 # 1. 저장소 clone (최초 1회, private repo라 SSH 인증 필요)
 git clone <repo-url> ~/lab/api-platform
-cd ~/lab/api-platform
+# 저장소 루트에는 v1/만 있다 - docker-compose.yml, .env.example, apm-api/는 모두 v1 아래에 있으므로 여기서 작업한다
+cd ~/lab/api-platform/v1
 
 # 2. .env 생성 (최초 1회, 비밀값이라 git에 올라가지 않음)
 cp .env.example .env
@@ -95,7 +96,7 @@ docker compose up -d
 ### 재배포
 
 ```bash
-cd ~/lab/api-platform
+cd ~/lab/api-platform/v1
 git pull
 docker compose build
 docker compose up -d
