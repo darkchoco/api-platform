@@ -48,6 +48,12 @@
                         <parameters>true</parameters>
                     </configuration>
                 </plugin>
+                <!-- BOM import는 플러그인 버전을 관리하지 않으므로 Spring Boot 버전과 맞춰 직접 선언 -->
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
